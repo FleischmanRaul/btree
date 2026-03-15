@@ -119,5 +119,5 @@ func remove(btree *BTree) {
 /*
 1. Create a BTree interface
 2. Use generic type instead of int
-3. Implement multiple types of binary trees: Balanced, sorted, simple.
+3. Implement multiple types of binary trees: balanced, sorted, simple.
 */
