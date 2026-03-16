@@ -127,4 +127,6 @@ func TestBuildRTree_MultipleSplits(t *testing.T) {
 func TestPPrint(t *testing.T) {
 	tree := buildRTree([]string{"a", "ab", "abc", "abcd"})
 	printRTree(tree)
+	tree = buildRTree([]string{"ab", "abc", "abd", "apple", "application", "application2", "application3", "ag", "ag1", "ag23209743987234897432908732409873429087", "ag23209743987234897432908732409873429088", "ag3", "ag4"})
+	printRTree(tree)
 }
