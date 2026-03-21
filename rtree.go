@@ -8,54 +8,39 @@ import (
 // Definition of a radix tree.
 type RTree struct {
 	Metadata string
+	Final    bool
 	Edges    map[string]*RTree
 }
 
-func buildRTree(vals []string) *RTree {
-	head := &RTree{
-		Metadata: "",
-		Edges:    make(map[string]*RTree),
+func newNode() *RTree {
+	return &RTree{
+		Edges: make(map[string]*RTree),
 	}
+}
+
+func buildRTree(vals []string) *RTree {
+	head := newNode()
 
 	for _, val := range vals {
-		v, r := navigate(val, head)
-
-		if len(v) == 0 {
-			fmt.Println("Duplicate: ", val)
-			continue
-		}
-
-		r.Edges[v] = &RTree{
-			Metadata: "",
-			Edges:    make(map[string]*RTree),
-		}
-
+		head.Insert(val)
 	}
 	return head
 }
 
 func navigate(val string, rtree *RTree) (string, *RTree) {
-	for i := len(val); i > 0; i-- {
-		cont, ok := rtree.Edges[val[0:i]]
-		if ok {
-			return navigate(val[i:], cont)
-		}
-	}
-
-	// partial match
 	for k := range rtree.Edges {
 		cp := commonPrefix(val, k)
+		if len(cp) == len(k) {
+			return navigate(val[len(cp):], rtree.Edges[k])
+		}
+
 		if len(cp) > 0 {
-			rtree.Edges[cp] = &RTree{
-				Metadata: "",
-				Edges:    make(map[string]*RTree),
-			}
+			rtree.Edges[cp] = newNode()
 			rtree.Edges[cp].Edges[k[len(cp):]] = rtree.Edges[k]
 			delete(rtree.Edges, k)
 			return val[len(cp):], rtree.Edges[cp]
 		}
 	}
-
 	return val, rtree
 }
 
@@ -66,11 +51,11 @@ func commonPrefix(a, b string) string {
 	return a[:i]
 }
 
-func printRTree(rtree *RTree) {
-	printRTreeInt(rtree, "", "", "root", false)
+func (rtree *RTree) printRTree() {
+	printHelper(rtree, "", "", "root", false)
 }
 
-func printRTreeInt(node *RTree, prefix string, connector string, val string, ins bool) {
+func printHelper(node *RTree, prefix string, connector string, val string, ins bool) {
 	fmt.Println(prefix + connector + val)
 	keys_list := []string{}
 	for k := range node.Edges {
@@ -85,9 +70,41 @@ func printRTreeInt(node *RTree, prefix string, connector string, val string, ins
 
 	for i, k := range keys_list {
 		if i == len(keys_list)-1 {
-			printRTreeInt(node.Edges[k], newPrefix, "└── ", k, false)
+			printHelper(node.Edges[k], newPrefix, "└── ", k, false)
 		} else {
-			printRTreeInt(node.Edges[k], newPrefix, "├── ", k, true)
+			printHelper(node.Edges[k], newPrefix, "├── ", k, true)
 		}
 	}
+}
+
+func (rtree *RTree) Insert(val string) {
+	v, r := navigate(val, rtree)
+	if len(v) == 0 {
+		r.Final = true
+		return
+	}
+	r.Edges[v] = &RTree{
+		Metadata: "",
+		Final:    true,
+		Edges:    make(map[string]*RTree),
+	}
+}
+
+func (rtree *RTree) Delete(val string) bool {
+	return true
+}
+
+func (rtree *RTree) Contains(val string) bool {
+	v, r := navigate(val, rtree)
+	return len(v) == 0 && r.Final
+}
+
+func (rtree *RTree) PartialContains(val string) bool {
+	v, _ := navigate(val, rtree)
+	return len(v) == 0
+}
+
+func (rtree *RTree) List() []string {
+	ret := []string{}
+	return ret
 }
