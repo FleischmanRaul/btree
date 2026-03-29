@@ -18,7 +18,7 @@ func newNode() *RTree {
 	}
 }
 
-func buildRTree(vals []string) *RTree {
+func BuildRTree(vals []string) *RTree {
 	head := newNode()
 
 	for _, val := range vals {
@@ -44,6 +44,27 @@ func navigate(val string, rtree *RTree) (string, *RTree) {
 	return val, rtree
 }
 
+func navigate2(val string, rtree *RTree) (string, *RTree, string, *RTree, string, *RTree) {
+	return navigate2helper(val, rtree, "", nil, "", nil)
+}
+
+func navigate2helper(val string, rtree *RTree, valp string, rtreep *RTree, valg string, rtreeg *RTree) (string, *RTree, string, *RTree, string, *RTree) {
+	for k := range rtree.Edges {
+		cp := commonPrefix(val, k)
+		if len(cp) == len(k) {
+			return navigate2helper(val[len(cp):], rtree.Edges[k], k, rtree, valp, rtreep)
+		}
+
+		if len(cp) > 0 {
+			rtree.Edges[cp] = newNode()
+			rtree.Edges[cp].Edges[k[len(cp):]] = rtree.Edges[k]
+			delete(rtree.Edges, k)
+			return val[len(cp):], rtree.Edges[cp], cp, rtree, valp, rtreep
+		}
+	}
+	return val, rtree, valp, rtreep, valg, rtreeg
+}
+
 func commonPrefix(a, b string) string {
 	i := 0
 	for ; i < len(a) && i < len(b) && a[i] == b[i]; i++ {
@@ -51,7 +72,7 @@ func commonPrefix(a, b string) string {
 	return a[:i]
 }
 
-func (rtree *RTree) printRTree() {
+func (rtree *RTree) PrintTree() {
 	printHelper(rtree, "", "", "root", false)
 }
 
@@ -91,6 +112,29 @@ func (rtree *RTree) Insert(val string) {
 }
 
 func (rtree *RTree) Delete(val string) bool {
+	if rtree == nil {
+		return false
+	}
+
+	if !rtree.Contains(val) {
+		return false
+	}
+
+	_, r, pv, p, gv, g := navigate2(val, rtree)
+	r.Final = false
+
+	for k := range r.Edges {
+		p.Edges[pv+k] = r.Edges[k]
+	}
+	delete(p.Edges, pv)
+
+	if len(p.Edges) == 1 {
+		for k := range p.Edges {
+			g.Edges[gv+k] = p.Edges[k]
+		}
+		delete(g.Edges, gv)
+	}
+
 	return true
 }
 
@@ -105,6 +149,26 @@ func (rtree *RTree) PartialContains(val string) bool {
 }
 
 func (rtree *RTree) List() []string {
-	ret := []string{}
-	return ret
+	return listHelper(rtree, "")
 }
+
+func listHelper(node *RTree, acc string) []string {
+	result := []string{}
+	if node.Final {
+		result = append(result, acc)
+	}
+	for k, v := range node.Edges {
+		result = append(result, listHelper(v, acc+k)...)
+	}
+	return result
+}
+
+// func ForEachPrefix() {
+//  TODO
+// }
+
+// func DeletePrefix() {}
+// func Iterator() Iterator
+
+// func New() {}
+// func Len() {}

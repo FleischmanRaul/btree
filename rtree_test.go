@@ -1,6 +1,10 @@
 package btree
 
-import "testing"
+import (
+	"reflect"
+	"sort"
+	"testing"
+)
 
 func hasEdge(rtree *RTree, key string) bool {
 	_, ok := rtree.Edges[key]
@@ -28,14 +32,14 @@ func TestCommonPrefix(t *testing.T) {
 }
 
 func TestBuildRTree_SingleValue(t *testing.T) {
-	tree := buildRTree([]string{"apple"})
+	tree := BuildRTree([]string{"apple"})
 	if !hasEdge(tree, "apple") {
 		t.Error("expected edge 'apple' at root")
 	}
 }
 
 func TestBuildRTree_NoSharedPrefix(t *testing.T) {
-	tree := buildRTree([]string{"apple", "banana"})
+	tree := BuildRTree([]string{"apple", "banana"})
 	if !hasEdge(tree, "apple") {
 		t.Error("expected edge 'apple' at root")
 	}
@@ -46,7 +50,7 @@ func TestBuildRTree_NoSharedPrefix(t *testing.T) {
 
 func TestBuildRTree_SharedPrefix(t *testing.T) {
 	// "apple" and "application" share "appl"
-	tree := buildRTree([]string{"apple", "application"})
+	tree := BuildRTree([]string{"apple", "application"})
 	if !hasEdge(tree, "appl") {
 		t.Error("expected shared prefix edge 'appl' at root")
 	}
@@ -61,7 +65,7 @@ func TestBuildRTree_SharedPrefix(t *testing.T) {
 
 func TestBuildRTree_ExactPrefixMatch(t *testing.T) {
 	// "ab" is an exact prefix of "abc"
-	tree := buildRTree([]string{"ab", "abc"})
+	tree := BuildRTree([]string{"ab", "abc"})
 	if !hasEdge(tree, "ab") {
 		t.Error("expected edge 'ab' at root")
 	}
@@ -73,7 +77,7 @@ func TestBuildRTree_ExactPrefixMatch(t *testing.T) {
 
 func TestBuildRTree_Duplicate(t *testing.T) {
 	// duplicates should be silently skipped
-	tree := buildRTree([]string{"apple", "apple"})
+	tree := BuildRTree([]string{"apple", "apple"})
 	if !hasEdge(tree, "apple") {
 		t.Error("expected edge 'apple' at root")
 	}
@@ -83,7 +87,7 @@ func TestBuildRTree_Duplicate(t *testing.T) {
 }
 
 func TestBuildRTree_EmptyInput(t *testing.T) {
-	tree := buildRTree([]string{})
+	tree := BuildRTree([]string{})
 	if len(tree.Edges) != 0 {
 		t.Errorf("expected empty tree, got %d edges", len(tree.Edges))
 	}
@@ -91,7 +95,7 @@ func TestBuildRTree_EmptyInput(t *testing.T) {
 
 func TestBuildRTree_DeepNesting(t *testing.T) {
 	// each value is a prefix of the next
-	tree := buildRTree([]string{"a", "ab", "abc", "abcd"})
+	tree := BuildRTree([]string{"a", "ab", "abc", "abcd"})
 	if !hasEdge(tree, "a") {
 		t.Error("expected edge 'a' at root")
 	}
@@ -111,7 +115,7 @@ func TestBuildRTree_DeepNesting(t *testing.T) {
 
 func TestBuildRTree_MultipleSplits(t *testing.T) {
 	// "ab", "abc", "abd" should split into "ab" -> {"c", "d"}
-	tree := buildRTree([]string{"ab", "abc", "abd"})
+	tree := BuildRTree([]string{"ab", "abc", "abd"})
 	if !hasEdge(tree, "ab") {
 		t.Error("expected edge 'ab' at root")
 	}
@@ -125,7 +129,7 @@ func TestBuildRTree_MultipleSplits(t *testing.T) {
 }
 
 func TestContains_ExistingValues(t *testing.T) {
-	tree := buildRTree([]string{"apple", "application", "banana"})
+	tree := BuildRTree([]string{"apple", "application", "banana"})
 	for _, val := range []string{"apple", "application", "banana"} {
 		if !tree.Contains(val) {
 			t.Errorf("expected tree to contain %q", val)
@@ -134,7 +138,7 @@ func TestContains_ExistingValues(t *testing.T) {
 }
 
 func TestContains_NonExistingValues(t *testing.T) {
-	tree := buildRTree([]string{"apple", "application", "banana"})
+	tree := BuildRTree([]string{"apple", "application", "banana"})
 	for _, val := range []string{"app", "appl", "applications", "ban", "banan", "cherry"} {
 		if tree.Contains(val) {
 			t.Errorf("expected tree NOT to contain %q", val)
@@ -143,7 +147,7 @@ func TestContains_NonExistingValues(t *testing.T) {
 }
 
 func TestContains_EmptyTree(t *testing.T) {
-	tree := buildRTree([]string{})
+	tree := BuildRTree([]string{})
 	if tree.Contains("anything") {
 		t.Error("expected empty tree to not contain anything")
 	}
@@ -151,7 +155,7 @@ func TestContains_EmptyTree(t *testing.T) {
 
 func TestContains_Prefix(t *testing.T) {
 	// "ab" is inserted but "a" is not
-	tree := buildRTree([]string{"ab", "abc"})
+	tree := BuildRTree([]string{"ab", "abc"})
 	if !tree.Contains("ab") {
 		t.Error("expected tree to contain 'ab'")
 	}
@@ -164,14 +168,14 @@ func TestContains_Prefix(t *testing.T) {
 }
 
 func TestContains_EmptyString(t *testing.T) {
-	tree := buildRTree([]string{"apple"})
+	tree := BuildRTree([]string{"apple"})
 	if tree.Contains("") {
 		t.Error("expected tree NOT to contain empty string")
 	}
 }
 
 func TestContains_AfterInsert(t *testing.T) {
-	tree := buildRTree([]string{})
+	tree := BuildRTree([]string{})
 	if tree.Contains("hello") {
 		t.Error("expected tree NOT to contain 'hello' before insert")
 	}
@@ -182,7 +186,7 @@ func TestContains_AfterInsert(t *testing.T) {
 }
 
 func TestContains_Tricky(t *testing.T) {
-	tree := buildRTree([]string{"apple1", "apple2", "apple"})
+	tree := BuildRTree([]string{"apple1", "apple2", "apple"})
 	if !tree.Contains("apple1") {
 		t.Error("expected tree to contain 'hello' after insert")
 	}
@@ -196,7 +200,7 @@ func TestContains_Tricky(t *testing.T) {
 
 func TestContains_SharedPrefixPartial(t *testing.T) {
 	// only full inserted words should match, not intermediate split nodes
-	tree := buildRTree([]string{"apple", "application"})
+	tree := BuildRTree([]string{"apple", "application"})
 	if tree.Contains("appl") {
 		t.Error("expected tree NOT to contain 'appl' (shared prefix node)")
 	}
@@ -205,16 +209,82 @@ func TestContains_SharedPrefixPartial(t *testing.T) {
 	}
 }
 
+func TestList(t *testing.T) {
+	expected := []string{"a", "ab", "abc", "abcd"}
+	tree := BuildRTree(expected)
+	assertSameElements(t, tree.List(), expected)
+}
+
+func TestList_Tricky(t *testing.T) {
+	expected := []string{"apple1", "apple2", "apple"}
+	tree := BuildRTree(expected).List()
+	assertSameElements(t, tree, expected)
+}
+
 func TestPPrint(t *testing.T) {
-	tree := buildRTree([]string{"a", "ab", "abc", "abcd"})
-	// printRTree(tree)
-	tree = buildRTree([]string{"ab", "abc", "abd", "apple", "application", "application2", "application3", "ag", "ag1", "ag23209743987234897432908732409873429087", "ag23209743987234897432908732409873429088", "ag3", "ag4"})
-	// printRTree(tree)
-	tree = buildRTree([]string{"bea", "berti", "beke", "andor", "akvarium"})
-	// printRTree(tree)
-	tree = buildRTree([]string{})
+	tree := BuildRTree([]string{"a", "ab", "abc", "abcd"})
+	tree.PrintTree()
+	tree = BuildRTree([]string{"ab", "abc", "abd", "apple", "application", "application2", "application3", "ag", "ag1", "ag23209743987234897432908732409873429087", "ag23209743987234897432908732409873429088", "ag3", "ag4"})
+	tree.PrintTree()
+	tree = BuildRTree([]string{"bea", "berti", "beke", "andor", "akvarium"})
+	tree.PrintTree()
+	tree = BuildRTree([]string{})
 	tree.Insert("first")
 	tree.Insert("fisst")
 	tree.Insert("fsss")
-	// printRTree(tree)
+	tree.PrintTree()
+}
+
+func assertSameElements(t *testing.T, got, expected []string) {
+	sort.Strings(got)
+	sort.Strings(expected)
+	if !reflect.DeepEqual(got, expected) {
+		t.Errorf("expected %v, got %v", expected, got)
+	}
+}
+
+func TestDelete(t *testing.T) {
+	tree := BuildRTree([]string{"apple", "application", "banana"})
+	if !tree.Delete("apple") {
+		t.Error("expected delete to succeed")
+	}
+	if tree.Contains("apple") {
+		t.Error("expected tree NOT to contain 'apple' after delete")
+	}
+	if !tree.Contains("application") {
+		t.Error("expected tree to contain 'application' after delete")
+	}
+	if !tree.Contains("banana") {
+		t.Error("expected tree to contain 'banana' after delete")
+	}
+}
+
+func TestDelete_Join(t *testing.T) {
+	tree := BuildRTree([]string{"ab", "ac"})
+	tree.PrintTree()
+	if !tree.Delete("ab") {
+		t.Error("expected delete to succeed")
+	}
+	tree.PrintTree()
+
+	tree = BuildRTree([]string{"ab", "ac", "ad"})
+	tree.PrintTree()
+	if !tree.Delete("ab") {
+		t.Error("expected delete to succeed")
+	}
+	tree.PrintTree()
+
+	tree = BuildRTree([]string{"ab1", "ab2", "ac", "ad"})
+	tree.PrintTree()
+	if !tree.Delete("ab1") {
+		t.Error("expected delete to succeed")
+	}
+	tree.PrintTree()
+
+	tree = BuildRTree([]string{"ab1"})
+	tree.PrintTree()
+	if !tree.Delete("ab1") {
+		t.Error("expected delete to succeed")
+	}
+	tree.PrintTree()
 }
